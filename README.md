@@ -1,29 +1,30 @@
 # french-cleaner
 
-Pipeline de nettoyage typographique de textes en français.
+> Python pipeline for cleaning and normalizing French text — punctuation spacing, apostrophes, elisions, line breaks, OCR artifacts, mojibake, and more. Zero required dependencies. 194 tests.
+
+*[Lire en français](README.fr.md)*
 
 ## Installation
 
 ```bash
 pip install -e .
-# Avec ftfy pour la correction d'encodage :
+# With ftfy for encoding correction:
 pip install -e ".[recommended]"
 ```
 
-## Utilisation rapide
+## Quick start
 
 ```python
 from french_cleaner import FrenchCleaner
 
 cleaner = FrenchCleaner()
 text = cleaner.clean("Bonjour ,comment  vas-tu ?")
-# → "Bonjour, comment vas-tu ?"  (avec espace insécable fine avant ?)
+# → "Bonjour, comment vas-tu ?"  (narrow no-break space before ?)
 ```
 
+## Example
 
-## Exemple complet
-
-Texte brut issu d'un copier-coller (espaces fautifs, coupure OCR, guillemets mal espacés, apostrophes droites, sauts de ligne multiples, URL, email, ponctuation répétée) :
+Raw text from a copy-paste (stray spaces, OCR line break, misspaced quotation marks, straight apostrophes, multiple blank lines, URL, email, repeated punctuation):
 
 ```text
 Hier soir ,j' ai relu le «  Horla  » de Maupassant...
@@ -50,7 +51,7 @@ cleaner = FrenchCleaner(
 result = cleaner.clean(raw)
 ```
 
-Résultat :
+Output:
 
 ```text
 Hier soir, j'ai relu le « Horla » de Maupassant…
@@ -62,73 +63,72 @@ Prix de l'edition collector : 24.90 EUR !
 Disponible en librairie ; commandez des maintenant !
 ```
 
-Ce qui a changé, ligne par ligne :
+What changed, line by line:
 
-| Avant | Après | Règle |
+| Before | After | Rule |
 |---|---|---|
-| `Hier soir ,j' ai` | `Hier soir, j'ai` | espace avant `,` supprimé · espace dans l'apostrophe supprimé |
-| `«  Horla  »` | `« Horla »` | espaces multiples → espace insécable fine (U+202F) |
+| `Hier soir ,j' ai` | `Hier soir, j'ai` | space before `,` removed · space inside apostrophe removed |
+| `«  Horla  »` | `« Horla »` | multiple spaces → narrow no-break space (U+202F) |
 | `Maupassant...` | `Maupassant…` | `...` → `…` (U+2026) |
-| `C' est l' une` | `C'est l'une` | espaces autour des apostrophes supprimés |
-| `nouvelles—avec` | `nouvelles — avec` | espace autour du tiret cadratin |
-| `remar-\nquable` | `remarquable` | coupure de mot OCR/PDF fusionnée |
-| `sobre ,precis` | `sobre, precis` | espace avant `,` supprimé · espace après `,` ajouté |
-| *(3 lignes vides)* | *(1 ligne vide)* | sauts de ligne multiples réduits |
-| `info@example.fr` | `<EMAIL>` | email remplacé par placeholder |
-| `https://example.com` | `<URL>` | URL remplacée par placeholder |
-| `l' edition` | `l'edition` | espace après apostrophe supprimé |
-| `24.90 EUR !!!` | `24.90 EUR !` | ponctuation répétée réduite |
-| `librairie  ;  commandez  des  maintenant` | `librairie ; commandez des maintenant` | espaces multiples réduits |
+| `C' est l' une` | `C'est l'une` | spaces around apostrophes removed |
+| `nouvelles—avec` | `nouvelles — avec` | spaces added around em dash |
+| `remar-\nquable` | `remarquable` | OCR/PDF word-break hyphen fused |
+| `sobre ,precis` | `sobre, precis` | space before `,` removed · space after `,` added |
+| *(3 blank lines)* | *(1 blank line)* | consecutive blank lines reduced |
+| `info@example.fr` | `<EMAIL>` | email replaced by placeholder |
+| `https://example.com` | `<URL>` | URL replaced by placeholder |
+| `l' edition` | `l'edition` | space after apostrophe removed |
+| `24.90 EUR !!!` | `24.90 EUR !` | repeated punctuation reduced |
+| `librairie  ;  commandez  des  maintenant` | `librairie ; commandez des maintenant` | multiple spaces reduced |
 
-> **Note typographique :** les espaces avant `: ; ! ?` et autour de `« »` sont des espaces insécables fines (U+202F), conformes aux recommandations typographiques françaises. Elles apparaissent comme des espaces normales dans la plupart des éditeurs.
+> **Typographic note:** spaces before `: ; ! ?` and around `« »` are narrow no-break spaces (U+202F), as recommended by French typographic standards. They render as regular spaces in most editors.
 
+## Features
 
-## Fonctionnalités
+### Spaces & punctuation
+- Removes stray spaces before `,` `.` `)` `]`
+- Inserts narrow no-break space (U+202F) before `: ; ! ?`
+- Narrow no-break space around French quotation marks `« »`
+- Collapses multiple spaces
+- Normalizes spaces around em dash `—` and en dash `–`
+- Normalizes ellipsis `...` → `…`
 
-### Espaces & ponctuation
-- Suppression des espaces avant `,` `.` `)` `]`
-- Ajout de l'espace insécable fine (U+202F) avant `: ; ! ?`
-- Espace insécable fine autour des guillemets `« »`
-- Réduction des espaces multiples
-- Normalisation des espaces autour des tirets `—` `–`
-- Normalisation des points de suspension `...` → `…`
-
-### Sauts de ligne
-- Normalisation CRLF → LF
-- Suppression des espaces en fin de ligne
-- Réduction des sauts de ligne multiples (max configurable)
-- Fusion des sauts de ligne accidentels en milieu de phrase (heuristique)
-- Correction des coupures de mot OCR/PDF (`informa-\ntion` → `information`)
+### Line breaks
+- Normalizes CRLF → LF
+- Strips trailing spaces on each line
+- Reduces consecutive blank lines (max count configurable)
+- Merges accidental mid-sentence line breaks (heuristic)
+- Fuses OCR/PDF word-break hyphens (`informa-\ntion` → `information`)
 
 ### Apostrophes
-- Normalisation vers l'apostrophe typographique `'` (U+2019)
-- Suppression des espaces autour des apostrophes (`c' est` → `c'est`)
-- Correction des élisions manquantes (`le arbre` → `l'arbre`)
-- Correction des apostrophes doublées (`l''homme` → `l'homme`)
+- Normalizes to typographic apostrophe `'` (U+2019)
+- Removes spaces around apostrophes (`c' est` → `c'est`)
+- Fixes missing elisions (`le arbre` → `l'arbre`)
+- Collapses double apostrophes (`l''homme` → `l'homme`)
 
-### Guillemets
-- Normalisation des espaces autour des guillemets français `« »`
-- Conversion optionnelle des guillemets anglais `"…"` → `«\u202f…\u202f»`
-- Conversion optionnelle des guillemets ASCII `"…"` → `«\u202f…\u202f»`
+### Quotation marks
+- Normalizes spacing around French guillemets `« »`
+- Optional: converts typographic English quotes `"…"` → `«\u202f…\u202f»`
+- Optional: converts straight ASCII quotes `"…"` → `«\u202f…\u202f»`
 
-### Encodage & Unicode
-- Correction du mojibake via `ftfy` (si installé)
-- Normalisation Unicode NFC
-- Suppression des caractères de contrôle et de largeur nulle
-- Développement des ligatures typographiques rares (ﬁ→fi, ﬂ→fl…)
-- Décodage des entités HTML (`&amp;`, `&nbsp;`…)
+### Encoding & Unicode
+- Fixes mojibake via `ftfy` (if installed)
+- NFC Unicode normalization
+- Removes control characters and zero-width characters
+- Expands rare typographic ligatures (ﬁ→fi, ﬂ→fl…), preserving `œ` and `æ`
+- Decodes HTML entities (`&amp;`, `&nbsp;`…)
 
-### Divers (optionnels)
-- Suppression des URLs (remplacées par `<URL>`)
-- Suppression des e-mails (remplacés par `<EMAIL>`)
-- Réduction de la ponctuation répétée (`!!!` → `!`)
+### Optional extras
+- Removes URLs (replaced by `<URL>`)
+- Removes email addresses (replaced by `<EMAIL>`)
+- Reduces repeated punctuation (`!!!` → `!`)
 
 ## Configuration
 
 ```python
 from french_cleaner import FrenchCleaner, CleanerConfig
 
-# Via kwargs
+# Via keyword arguments
 cleaner = FrenchCleaner(
     remove_urls=True,
     remove_emails=True,
@@ -143,11 +143,13 @@ cleaner = FrenchCleaner(
 config = CleanerConfig(remove_urls=True, max_newlines=1)
 cleaner = FrenchCleaner(config=config)
 
-# Traitement en lot
+# Batch processing
 results = cleaner.clean_batch(["texte 1", "texte 2"])
 ```
 
-## Utilisation des règles individuellement
+## Using individual rules
+
+Each rule is also available as a standalone function:
 
 ```python
 from french_cleaner.rules.spaces import fix_space_before_punctuation
@@ -167,7 +169,7 @@ pytest
 pytest --cov=french_cleaner --cov-report=term-missing
 ```
 
-## Structure du projet
+## Project structure
 
 ```
 french_cleaner/
@@ -175,24 +177,25 @@ french_cleaner/
 │   ├── __init__.py
 │   ├── cleaner.py          # FrenchCleaner + CleanerConfig
 │   └── rules/
-│       ├── spaces.py       # espaces & ponctuation
-│       ├── linebreaks.py   # sauts de ligne
-│       ├── apostrophes.py  # apostrophes & élisions
-│       ├── quotes.py       # guillemets français
-│       └── misc.py         # encodage, HTML, URLs, divers
+│       ├── spaces.py       # spaces & punctuation
+│       ├── linebreaks.py   # line breaks
+│       ├── apostrophes.py  # apostrophes & elisions
+│       ├── quotes.py       # French quotation marks
+│       └── misc.py         # encoding, HTML, URLs, misc
 ├── tests/
 │   ├── test_spaces.py
 │   ├── test_linebreaks.py
 │   ├── test_apostrophes.py
 │   ├── test_quotes.py
 │   ├── test_misc.py
-│   └── test_cleaner.py     # tests d'intégration
+│   └── test_cleaner.py     # integration tests
 ├── pyproject.toml
-└── README.md
+├── README.md
+└── README.fr.md
 ```
 
-## Références typographiques
+## Typographic references
 
 - [Lexique des règles typographiques — Imprimerie nationale](https://www.imprimerie-nationale.fr)
-- Unicode Character Database : U+202F NARROW NO-BREAK SPACE
-- Recommandations AFNOR pour la typographie française
+- Unicode Character Database: U+202F NARROW NO-BREAK SPACE
+- AFNOR recommendations for French typography
